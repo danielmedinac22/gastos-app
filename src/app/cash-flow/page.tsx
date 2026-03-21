@@ -43,13 +43,31 @@ export default async function CashFlowPage() {
             isPaid: true,
             isClosed: true,
             paymentDate: true,
+            expenses: {
+              select: { amount: true },
+            },
           },
         },
       },
     }),
   ]);
 
-  const periods = buildPaymentPeriods(now, incomes, fixedExpenses, cards);
+  // Compute real totalAmount from expenses (fixes stale/zero totalAmount)
+  const cardsWithTotals = cards.map((card) => ({
+    ...card,
+    billingCycles: card.billingCycles.map((cycle) => {
+      const expenseTotal = cycle.expenses.reduce(
+        (sum, e) => sum + Number(e.amount),
+        0
+      );
+      return {
+        ...cycle,
+        totalAmount: expenseTotal > 0 ? expenseTotal : Number(cycle.totalAmount),
+      };
+    }),
+  }));
+
+  const periods = buildPaymentPeriods(now, incomes, fixedExpenses, cardsWithTotals);
 
   const isPast = (period: PaymentPeriod) => period.date < now;
 

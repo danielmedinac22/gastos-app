@@ -32,12 +32,40 @@ export async function createExpense(formData: FormData) {
     },
   });
 
+  if (billingCycleId) {
+    await syncCycleTotalAmount(billingCycleId);
+  }
+
   revalidatePath("/");
   revalidatePath("/expenses");
+  revalidatePath("/cash-flow");
 }
 
 export async function deleteExpense(id: string) {
+  const expense = await prisma.expense.findUnique({
+    where: { id },
+    select: { billingCycleId: true },
+  });
+
   await prisma.expense.delete({ where: { id } });
+
+  if (expense?.billingCycleId) {
+    await syncCycleTotalAmount(expense.billingCycleId);
+  }
+
   revalidatePath("/");
   revalidatePath("/expenses");
+  revalidatePath("/cash-flow");
+}
+
+async function syncCycleTotalAmount(billingCycleId: string) {
+  const result = await prisma.expense.aggregate({
+    where: { billingCycleId },
+    _sum: { amount: true },
+  });
+
+  await prisma.billingCycle.update({
+    where: { id: billingCycleId },
+    data: { totalAmount: result._sum.amount ?? 0 },
+  });
 }
