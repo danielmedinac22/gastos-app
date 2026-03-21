@@ -2,119 +2,194 @@ import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { IncomeForm } from "@/components/income-form";
-import { TrendingUp, TrendingDown, Wallet, CreditCard, Repeat } from "lucide-react";
+import { buildPaymentPeriods, type PaymentPeriod } from "@/lib/cash-flow";
+import { CalendarDays, Repeat, CreditCard, Wallet } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function CashFlowPage() {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+  const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-  const [settings, expenses, fixedExpenses, cardPayments] = await Promise.all([
+  const startRange = new Date(currentYear, currentMonth, 1);
+  const endRange = new Date(nextYear, nextMonth + 1, 0);
+
+  const [settings, fixedExpenses, cards] = await Promise.all([
     prisma.settings.findFirst({ where: { id: "default" } }),
-    prisma.expense.aggregate({
-      where: {
-        date: { gte: startOfMonth, lte: endOfMonth },
-        fixedExpenseId: null,
-      },
-      _sum: { amount: true },
-    }),
     prisma.fixedExpense.findMany({
       where: { isActive: true },
-      select: { amount: true },
+      include: { category: true, creditCard: true },
+      orderBy: { dayOfMonth: "asc" },
     }),
-    prisma.billingCycle.findMany({
-      where: {
-        isPaid: false,
-        isClosed: true,
-        paymentDate: { gte: startOfMonth, lte: endOfMonth },
+    prisma.creditCard.findMany({
+      where: { isActive: true },
+      include: {
+        billingCycles: {
+          where: {
+            isPaid: false,
+            paymentDate: { gte: startRange, lte: endRange },
+          },
+          select: {
+            id: true,
+            totalAmount: true,
+            isPaid: true,
+            isClosed: true,
+            paymentDate: true,
+          },
+        },
       },
-      select: { totalAmount: true },
     }),
   ]);
 
   const income = Number(settings?.monthlyIncome ?? 0);
-  const variableExpenses = Number(expenses._sum.amount ?? 0);
-  const totalFixed = fixedExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const totalCardPayments = cardPayments.reduce(
-    (sum, c) => sum + Number(c.totalAmount),
-    0
-  );
-  const totalExpenses = variableExpenses + totalFixed + totalCardPayments;
-  const available = income - totalExpenses;
+  const incomePerPeriod = income / 2;
 
-  const monthName = new Intl.DateTimeFormat("es-CO", { month: "long" }).format(now);
+  const periods = buildPaymentPeriods(now, fixedExpenses, cards);
+
+  const isPast = (period: PaymentPeriod) => period.date < now;
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Flujo de caja</h1>
-      <p className="text-sm text-muted-foreground capitalize">{monthName} {now.getFullYear()}</p>
 
-      {/* Income setting */}
       <IncomeForm currentIncome={income} />
 
-      {/* Flow breakdown */}
-      <Card>
-        <CardContent className="py-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              Ingresos
-            </div>
-            <span className="font-bold text-green-600">
-              {formatCurrency(income)}
-            </span>
-          </div>
+      {periods.map((period, i) => {
+        const available = incomePerPeriod - period.total;
+        const past = isPast(period);
 
-          <Separator />
+        return (
+          <Card key={i} className={past ? "opacity-60" : ""}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  {period.label}
+                </CardTitle>
+                {past && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    Pasado
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Fixed expenses */}
+              {period.fixedExpenses.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Repeat className="h-3 w-3" />
+                    Gastos fijos
+                  </div>
+                  {period.fixedExpenses.map((fe) => (
+                    <div
+                      key={fe.id}
+                      className="flex items-center justify-between pl-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{fe.categoryIcon}</span>
+                        <span className="text-sm">{fe.name}</span>
+                        {fe.creditCardName && (
+                          <span
+                            className="text-[10px] px-1.5 py-0 rounded border"
+                            style={{ borderColor: fe.creditCardColor ?? undefined }}
+                          >
+                            {fe.creditCardName}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {formatCurrency(fe.amount)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pl-4 text-xs text-orange-500 font-medium">
+                    <span>Subtotal fijos</span>
+                    <span>{formatCurrency(period.totalFixed)}</span>
+                  </div>
+                </div>
+              )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <Repeat className="h-4 w-4 text-orange-500" />
-              Gastos fijos
-            </div>
-            <span className="font-bold text-orange-500">
-              -{formatCurrency(totalFixed)}
-            </span>
-          </div>
+              {/* Card payments */}
+              {period.cardPayments.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CreditCard className="h-3 w-3" />
+                    Pagos tarjetas
+                  </div>
+                  {period.cardPayments.map((cp) => (
+                    <div
+                      key={cp.cardId}
+                      className="flex items-center justify-between pl-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: cp.cardColor }}
+                        />
+                        <span className="text-sm">{cp.cardName}</span>
+                        {cp.isEstimate && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            Estimado
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {formatCurrency(cp.amount)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pl-4 text-xs text-purple-500 font-medium">
+                    <span>Subtotal tarjetas</span>
+                    <span>{formatCurrency(period.totalCards)}</span>
+                  </div>
+                </div>
+              )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <TrendingDown className="h-4 w-4 text-red-500" />
-              Gastos variables
-            </div>
-            <span className="font-bold text-red-500">
-              -{formatCurrency(variableExpenses)}
-            </span>
-          </div>
+              {period.fixedExpenses.length === 0 &&
+                period.cardPayments.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Sin pagos programados
+                  </p>
+                )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <CreditCard className="h-4 w-4 text-purple-500" />
-              Pagos tarjetas
-            </div>
-            <span className="font-bold text-purple-500">
-              -{formatCurrency(totalCardPayments)}
-            </span>
-          </div>
+              <Separator />
 
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold">
-              <Wallet className="h-4 w-4" />
-              Disponible
-            </div>
-            <span
-              className={`text-lg font-bold ${available < 0 ? "text-destructive" : "text-green-600"}`}
-            >
-              {formatCurrency(available)}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+              {/* Totals */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Ingreso quincenal</span>
+                  <span className="text-green-600 font-medium">
+                    {formatCurrency(incomePerPeriod)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total a pagar</span>
+                  <span className="text-red-500 font-medium">
+                    -{formatCurrency(period.total)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-sm font-bold">
+                    <Wallet className="h-3.5 w-3.5" />
+                    Disponible
+                  </div>
+                  <span
+                    className={`font-bold ${available < 0 ? "text-destructive" : "text-green-600"}`}
+                  >
+                    {formatCurrency(available)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
