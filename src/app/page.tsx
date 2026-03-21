@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { CreditCard, TrendingDown, Wallet, CalendarClock, Repeat, ChevronRight } from "lucide-react";
+import { CreditCard, TrendingDown, TrendingUp, Wallet, CalendarClock, Repeat, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +12,8 @@ export default async function Dashboard() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [settings, monthExpenses, cards, upcomingCycles, fixedExpenses] = await Promise.all([
-    prisma.settings.findFirst({ where: { id: "default" } }),
+  const [incomes, monthExpenses, cards, upcomingCycles, fixedExpenses] = await Promise.all([
+    prisma.income.findMany({ where: { isActive: true } }),
     prisma.expense.aggregate({
       where: { date: { gte: startOfMonth, lte: endOfMonth } },
       _sum: { amount: true },
@@ -46,8 +46,8 @@ export default async function Dashboard() {
   ]);
 
   const totalMonth = Number(monthExpenses._sum.amount ?? 0);
-  const income = Number(settings?.monthlyIncome ?? 0);
-  const available = income - totalMonth;
+  const totalIncome = incomes.reduce((sum, i) => sum + Number(i.amount), 0);
+  const available = totalIncome - totalMonth;
 
   return (
     <div className="space-y-4">
@@ -75,6 +75,25 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Link href="/incomes">
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium">Ingresos</p>
+                  <p className="text-xs text-muted-foreground">
+                    {incomes.length} fuente{incomes.length !== 1 ? "s" : ""} · {formatCurrency(totalIncome)}/mes
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       <Link href="/fixed">
         <Card>

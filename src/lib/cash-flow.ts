@@ -18,17 +18,27 @@ type CardPaymentItem = {
   isEstimate: boolean;
 };
 
+type IncomeItem = {
+  id: string;
+  name: string;
+  amount: number;
+  dayOfMonth: number;
+};
+
 export type PaymentPeriod = {
   label: string;
   date: Date;
   day: 15 | 30;
   month: number;
   year: number;
+  incomes: IncomeItem[];
   fixedExpenses: FixedExpenseItem[];
   cardPayments: CardPaymentItem[];
+  totalIncome: number;
   totalFixed: number;
   totalCards: number;
-  total: number;
+  totalExpenses: number;
+  available: number;
 };
 
 function assignToDay(dayOfMonth: number): 15 | 30 {
@@ -37,6 +47,12 @@ function assignToDay(dayOfMonth: number): 15 | 30 {
 
 export function buildPaymentPeriods(
   currentDate: Date,
+  incomes: {
+    id: string;
+    name: string;
+    amount: { toString(): string };
+    dayOfMonth: number;
+  }[],
   fixedExpenses: {
     id: string;
     name: string;
@@ -80,13 +96,33 @@ export function buildPaymentPeriods(
       day,
       month,
       year,
+      incomes: [],
       fixedExpenses: [],
       cardPayments: [],
+      totalIncome: 0,
       totalFixed: 0,
       totalCards: 0,
-      total: 0,
+      totalExpenses: 0,
+      available: 0,
     };
   });
+
+  // Assign incomes to each period (they repeat every month)
+  for (const inc of incomes) {
+    const targetDay = assignToDay(inc.dayOfMonth);
+    const item: IncomeItem = {
+      id: inc.id,
+      name: inc.name,
+      amount: parseFloat(inc.amount.toString()),
+      dayOfMonth: inc.dayOfMonth,
+    };
+
+    for (const period of periods) {
+      if (period.day === targetDay) {
+        period.incomes.push(item);
+      }
+    }
+  }
 
   // Assign fixed expenses to each period (they repeat every month)
   for (const fe of fixedExpenses) {
@@ -115,13 +151,11 @@ export function buildPaymentPeriods(
     for (const period of periods) {
       if (period.day !== targetDay) continue;
 
-      // Find the billing cycle that matches this period
       const matchingCycle = card.billingCycles.find((cycle) => {
         const pd = cycle.paymentDate;
         return pd.getMonth() === period.month && pd.getFullYear() === period.year;
       });
 
-      // If no matching cycle, look for an open (not closed) cycle as estimate
       const openCycle = !matchingCycle
         ? card.billingCycles.find((c) => !c.isClosed && !c.isPaid)
         : null;
@@ -146,9 +180,11 @@ export function buildPaymentPeriods(
 
   // Calculate totals
   for (const period of periods) {
+    period.totalIncome = period.incomes.reduce((sum, i) => sum + i.amount, 0);
     period.totalFixed = period.fixedExpenses.reduce((sum, e) => sum + e.amount, 0);
     period.totalCards = period.cardPayments.reduce((sum, p) => sum + p.amount, 0);
-    period.total = period.totalFixed + period.totalCards;
+    period.totalExpenses = period.totalFixed + period.totalCards;
+    period.available = period.totalIncome - period.totalExpenses;
   }
 
   return periods;

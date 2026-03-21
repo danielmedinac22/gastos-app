@@ -25,16 +25,3 @@ export async function deleteFixedExpense(id: string) {
   revalidatePath("/fixed");
   revalidatePath("/");
 }
-
-export async function updateIncome(formData: FormData) {
-  const monthlyIncome = parseFloat(formData.get("monthlyIncome") as string);
-
-  await prisma.settings.upsert({
-    where: { id: "default" },
-    update: { monthlyIncome },
-    create: { id: "default", monthlyIncome },
-  });
-
-  revalidatePath("/");
-  revalidatePath("/cash-flow");
-}

@@ -3,9 +3,9 @@ import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { IncomeForm } from "@/components/income-form";
 import { buildPaymentPeriods, type PaymentPeriod } from "@/lib/cash-flow";
-import { CalendarDays, Repeat, CreditCard, Wallet } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Repeat, CreditCard, Wallet, TrendingUp, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +19,11 @@ export default async function CashFlowPage() {
   const startRange = new Date(currentYear, currentMonth, 1);
   const endRange = new Date(nextYear, nextMonth + 1, 0);
 
-  const [settings, fixedExpenses, cards] = await Promise.all([
-    prisma.settings.findFirst({ where: { id: "default" } }),
+  const [incomes, fixedExpenses, cards] = await Promise.all([
+    prisma.income.findMany({
+      where: { isActive: true },
+      orderBy: { dayOfMonth: "asc" },
+    }),
     prisma.fixedExpense.findMany({
       where: { isActive: true },
       include: { category: true, creditCard: true },
@@ -46,21 +49,21 @@ export default async function CashFlowPage() {
     }),
   ]);
 
-  const income = Number(settings?.monthlyIncome ?? 0);
-  const incomePerPeriod = income / 2;
-
-  const periods = buildPaymentPeriods(now, fixedExpenses, cards);
+  const periods = buildPaymentPeriods(now, incomes, fixedExpenses, cards);
 
   const isPast = (period: PaymentPeriod) => period.date < now;
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Flujo de caja</h1>
-
-      <IncomeForm currentIncome={income} />
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Flujo de caja</h1>
+        <Link href="/incomes" className="flex items-center gap-1 text-xs text-primary">
+          Gestionar ingresos
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
 
       {periods.map((period, i) => {
-        const available = incomePerPeriod - period.total;
         const past = isPast(period);
 
         return (
@@ -79,6 +82,31 @@ export default async function CashFlowPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Incomes */}
+              {period.incomes.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <TrendingUp className="h-3 w-3" />
+                    Ingresos
+                  </div>
+                  {period.incomes.map((inc) => (
+                    <div
+                      key={inc.id}
+                      className="flex items-center justify-between pl-4"
+                    >
+                      <span className="text-sm">{inc.name}</span>
+                      <span className="text-sm font-medium text-green-600">
+                        +{formatCurrency(inc.amount)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pl-4 text-xs text-green-600 font-medium">
+                    <span>Subtotal ingresos</span>
+                    <span>+{formatCurrency(period.totalIncome)}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Fixed expenses */}
               {period.fixedExpenses.length > 0 && (
                 <div className="space-y-1.5">
@@ -151,10 +179,11 @@ export default async function CashFlowPage() {
                 </div>
               )}
 
-              {period.fixedExpenses.length === 0 &&
+              {period.incomes.length === 0 &&
+                period.fixedExpenses.length === 0 &&
                 period.cardPayments.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    Sin pagos programados
+                    Sin movimientos programados
                   </p>
                 )}
 
@@ -163,15 +192,15 @@ export default async function CashFlowPage() {
               {/* Totals */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Ingreso quincenal</span>
+                  <span className="text-muted-foreground">Ingresos</span>
                   <span className="text-green-600 font-medium">
-                    {formatCurrency(incomePerPeriod)}
+                    +{formatCurrency(period.totalIncome)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total a pagar</span>
+                  <span className="text-muted-foreground">Gastos</span>
                   <span className="text-red-500 font-medium">
-                    -{formatCurrency(period.total)}
+                    -{formatCurrency(period.totalExpenses)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -180,9 +209,9 @@ export default async function CashFlowPage() {
                     Disponible
                   </div>
                   <span
-                    className={`font-bold ${available < 0 ? "text-destructive" : "text-green-600"}`}
+                    className={`font-bold ${period.available < 0 ? "text-destructive" : "text-green-600"}`}
                   >
-                    {formatCurrency(available)}
+                    {formatCurrency(period.available)}
                   </span>
                 </div>
               </div>
