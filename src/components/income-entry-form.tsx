@@ -38,7 +38,7 @@ export function IncomeEntryForm() {
 
           <div>
             <Label htmlFor="inc-day" className="text-xs">Día del mes</Label>
-            <Input id="inc-day" name="dayOfMonth" type="number" min="1" max="28" placeholder="15" required className="h-9 text-sm" />
+            <Input id="inc-day" name="dayOfMonth" type="number" min="1" max="31" placeholder="15" required className="h-9 text-sm" />
           </div>
 
           <Button type="submit" size="sm" className="w-full">

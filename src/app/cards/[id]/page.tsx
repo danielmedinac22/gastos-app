@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
 import { MarkPaidButton } from "@/components/mark-paid-button";
+import { CardEditForm } from "@/components/card-edit-form";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +45,24 @@ export default async function CardDetailPage({
         <h1 className="text-2xl font-bold">{card.name}</h1>
       </div>
 
-      <div className="flex gap-3 text-sm text-muted-foreground">
-        <span>Corte: día {card.cutOffDay}</span>
-        <span>Pago: día {card.paymentDay}</span>
-        {card.creditLimit && (
-          <span>Cupo: {formatCurrency(Number(card.creditLimit))}</span>
-        )}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-3 text-sm text-muted-foreground">
+          <span>Corte: día {card.cutOffDay}</span>
+          <span>Pago: día {card.paymentDay}</span>
+          {card.creditLimit && (
+            <span>Cupo: {formatCurrency(Number(card.creditLimit))}</span>
+          )}
+        </div>
+        <CardEditForm
+          card={{
+            id: card.id,
+            name: card.name,
+            cutOffDay: card.cutOffDay,
+            paymentDay: card.paymentDay,
+            color: card.color,
+            creditLimit: card.creditLimit ? Number(card.creditLimit) : null,
+          }}
+        />
       </div>
 
       {/* Cycles */}

@@ -48,7 +48,7 @@ export function FixedExpenseForm({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label htmlFor="fe-day" className="text-xs">Día del mes</Label>
-              <Input id="fe-day" name="dayOfMonth" type="number" min="1" max="28" placeholder="1" required className="h-9 text-sm" />
+              <Input id="fe-day" name="dayOfMonth" type="number" min="1" max="31" placeholder="1" required className="h-9 text-sm" />
             </div>
             <div>
               <Label htmlFor="fe-category" className="text-xs">Categoría</Label>

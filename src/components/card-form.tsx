@@ -46,7 +46,7 @@ export function CardForm() {
                 name="cutOffDay"
                 type="number"
                 min="1"
-                max="28"
+                max="31"
                 placeholder="15"
                 required
               />
@@ -58,7 +58,7 @@ export function CardForm() {
                 name="paymentDay"
                 type="number"
                 min="1"
-                max="28"
+                max="31"
                 placeholder="5"
                 required
               />
