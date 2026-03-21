@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { CreditCard, TrendingDown, Wallet, CalendarClock } from "lucide-react";
+import { CreditCard, TrendingDown, Wallet, CalendarClock, Repeat, ChevronRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export default async function Dashboard() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [settings, monthExpenses, cards, upcomingCycles] = await Promise.all([
+  const [settings, monthExpenses, cards, upcomingCycles, fixedExpenses] = await Promise.all([
     prisma.settings.findFirst({ where: { id: "default" } }),
     prisma.expense.aggregate({
       where: { date: { gte: startOfMonth, lte: endOfMonth } },
@@ -37,6 +37,11 @@ export default async function Dashboard() {
       },
       include: { creditCard: true },
       orderBy: { paymentDate: "asc" },
+    }),
+    prisma.fixedExpense.findMany({
+      where: { isActive: true },
+      include: { category: true },
+      orderBy: { dayOfMonth: "asc" },
     }),
   ]);
 
@@ -70,6 +75,25 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Link href="/fixed">
+        <Card>
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-orange-500" />
+                <div>
+                  <p className="text-sm font-medium">Gastos fijos</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fixedExpenses.length} gasto{fixedExpenses.length !== 1 ? "s" : ""} · {formatCurrency(fixedExpenses.reduce((sum, e) => sum + Number(e.amount), 0))}/mes
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       {cards.length > 0 && (
         <Card>
