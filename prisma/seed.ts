@@ -14,9 +14,11 @@ const categories = [
   { name: "Salud", icon: "💊" },
   { name: "Hogar", icon: "🏠" },
   { name: "Servicios", icon: "💡" },
-  { name: "Compras", icon: "🛒" },
+  { name: "Compras", icon: "🛍️" },
   { name: "Educación", icon: "📚" },
   { name: "Suscripciones", icon: "📱" },
+  { name: "Maco", icon: "🐾" },
+  { name: "Mercado", icon: "🛒" },
   { name: "Otro", icon: "📦" },
 ];
 

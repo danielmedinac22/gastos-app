@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { buildPaymentPeriods, type PaymentPeriod } from "@/lib/cash-flow";
+import { CashFlowTabs } from "@/components/cash-flow-tabs";
 import Link from "next/link";
 import { CalendarDays, Repeat, CreditCard, Wallet, TrendingUp, ChevronRight, Banknote } from "lucide-react";
 
@@ -19,7 +20,7 @@ export default async function CashFlowPage() {
   const startRange = new Date(currentYear, currentMonth, 1);
   const endRange = new Date(nextYear, nextMonth + 1, 0);
 
-  const [incomes, fixedExpenses, cards, cashExpenses] = await Promise.all([
+  const [incomes, fixedExpenses, cards, cashExpenses, allExpenses] = await Promise.all([
     prisma.income.findMany({
       where: { isActive: true },
       orderBy: { dayOfMonth: "asc" },
@@ -56,6 +57,13 @@ export default async function CashFlowPage() {
         date: { gte: startRange, lte: endRange },
       },
       include: { category: true },
+      orderBy: { date: "asc" },
+    }),
+    prisma.expense.findMany({
+      where: {
+        date: { gte: startRange, lte: endRange },
+      },
+      include: { category: true, creditCard: true },
       orderBy: { date: "asc" },
     }),
   ]);
@@ -99,16 +107,52 @@ export default async function CashFlowPage() {
   }
   const cashMonths = Array.from(cashByMonth.values()).sort((a, b) => a.year - b.year || a.month - b.month);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Flujo de caja</h1>
-        <Link href="/incomes" className="flex items-center gap-1 text-xs text-primary">
-          Gestionar ingresos
-          <ChevronRight className="h-3 w-3" />
-        </Link>
-      </div>
+  // Group ALL expenses by month → category for "Gastos por mes" tab
+  const expensesByMonth = new Map<string, {
+    label: string;
+    month: number;
+    year: number;
+    total: number;
+    categories: Map<string, { icon: string; name: string; total: number; items: { description: string; amount: number; date: Date; method: string; cardName?: string; cardColor?: string }[] }>;
+  }>();
 
+  for (const exp of allExpenses) {
+    const d = new Date(exp.date);
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const key = `${y}-${m}`;
+    if (!expensesByMonth.has(key)) {
+      const monthName = new Intl.DateTimeFormat("es-CO", { month: "long" }).format(new Date(y, m, 1));
+      expensesByMonth.set(key, {
+        label: monthName.charAt(0).toUpperCase() + monthName.slice(1) + " " + y,
+        month: m,
+        year: y,
+        total: 0,
+        categories: new Map(),
+      });
+    }
+    const group = expensesByMonth.get(key)!;
+    group.total += Number(exp.amount);
+
+    const catKey = exp.categoryId;
+    if (!group.categories.has(catKey)) {
+      group.categories.set(catKey, { icon: exp.category.icon, name: exp.category.name, total: 0, items: [] });
+    }
+    const cat = group.categories.get(catKey)!;
+    cat.total += Number(exp.amount);
+    cat.items.push({
+      description: exp.description ?? "Sin descripción",
+      amount: Number(exp.amount),
+      date: d,
+      method: exp.paymentMethod,
+      cardName: exp.creditCard?.name,
+      cardColor: exp.creditCard?.color,
+    });
+  }
+  const expenseMonths = Array.from(expensesByMonth.values()).sort((a, b) => a.year - b.year || a.month - b.month);
+
+  const flowContent = (
+    <div className="space-y-4">
       {periods.map((period, i) => {
         const past = isPast(period);
 
@@ -307,6 +351,89 @@ export default async function CashFlowPage() {
           </Card>
         );
       })}
+    </div>
+  );
+
+  const expensesContent = (
+    <div className="space-y-4">
+      {expenseMonths.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          Sin gastos registrados en este período
+        </p>
+      )}
+
+      {expenseMonths.map((em) => {
+        const categories = Array.from(em.categories.values()).sort((a, b) => b.total - a.total);
+
+        return (
+          <Card key={`exp-${em.year}-${em.month}`}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">{em.label}</CardTitle>
+                <span className="text-sm font-bold text-red-500">
+                  {formatCurrency(em.total)}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {categories.map((cat) => (
+                <div key={cat.name} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{cat.icon}</span>
+                      <span className="text-sm font-medium">{cat.name}</span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {formatCurrency(cat.total)}
+                    </span>
+                  </div>
+
+                  {cat.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between pl-6 text-xs text-muted-foreground"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>{item.description}</span>
+                        {item.cardName ? (
+                          <span
+                            className="px-1 py-0 rounded border text-[10px]"
+                            style={{ borderColor: item.cardColor ?? undefined }}
+                          >
+                            {item.cardName}
+                          </span>
+                        ) : (
+                          <span className="px-1 py-0 rounded border text-[10px] border-emerald-400">
+                            Efectivo
+                          </span>
+                        )}
+                      </div>
+                      <span>{formatCurrency(item.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Flujo de caja</h1>
+        <Link href="/incomes" className="flex items-center gap-1 text-xs text-primary">
+          Gestionar ingresos
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <CashFlowTabs
+        flowContent={flowContent}
+        expensesContent={expensesContent}
+      />
     </div>
   );
 }
