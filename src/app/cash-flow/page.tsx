@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { buildPaymentPeriods, type PaymentPeriod } from "@/lib/cash-flow";
 import { CashFlowTabs } from "@/components/cash-flow-tabs";
+import { ExpensesByMonth } from "@/components/expenses-by-month";
 import Link from "next/link";
 import { CalendarDays, Repeat, CreditCard, Wallet, TrendingUp, ChevronRight, Banknote } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default async function CashFlowPage() {
   const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
   const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-  const startRange = new Date(currentYear, currentMonth, 1);
+  const startRange = new Date(currentYear, currentMonth - 12, 1);
   const endRange = new Date(nextYear, nextMonth + 1, 0);
 
   const [incomes, fixedExpenses, cards, cashExpenses, allExpenses] = await Promise.all([
@@ -113,7 +114,7 @@ export default async function CashFlowPage() {
     month: number;
     year: number;
     total: number;
-    categories: Map<string, { icon: string; name: string; total: number; items: { description: string; amount: number; date: Date; method: string; cardName?: string; cardColor?: string }[] }>;
+    categories: Map<string, { icon: string; name: string; total: number; items: { description: string; amount: number; date: Date; method: string; cardName?: string; cardColor?: string; categoryId: string }[] }>;
   }>();
 
   for (const exp of allExpenses) {
@@ -147,6 +148,7 @@ export default async function CashFlowPage() {
       method: exp.paymentMethod,
       cardName: exp.creditCard?.name,
       cardColor: exp.creditCard?.color,
+      categoryId: exp.categoryId,
     });
   }
   const expenseMonths = Array.from(expensesByMonth.values()).sort((a, b) => a.year - b.year || a.month - b.month);
@@ -354,70 +356,48 @@ export default async function CashFlowPage() {
     </div>
   );
 
+  // Serialize expense data for client component
+  const serializedMonths = expenseMonths.map((em) => {
+    const categories = Array.from(em.categories.values()).sort((a, b) => b.total - a.total);
+    return {
+      key: `${em.year}-${em.month}`,
+      label: em.label,
+      month: em.month,
+      year: em.year,
+      total: em.total,
+      categories: categories.map((cat) => ({
+        icon: cat.icon,
+        name: cat.name,
+        total: cat.total,
+        items: cat.items.map((item) => ({
+          description: item.description,
+          amount: item.amount,
+          date: item.date.toISOString(),
+          method: item.method,
+          cardName: item.cardName,
+          cardColor: item.cardColor,
+          categoryId: item.categoryId,
+        })),
+      })),
+    };
+  });
+
+  // Extract unique categories
+  const categoryMap = new Map<string, { id: string; icon: string; name: string }>();
+  for (const exp of allExpenses) {
+    if (!categoryMap.has(exp.categoryId)) {
+      categoryMap.set(exp.categoryId, { id: exp.categoryId, icon: exp.category.icon, name: exp.category.name });
+    }
+  }
+  const uniqueCategories = Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const currentMonthKey = `${currentYear}-${currentMonth}`;
+
   const expensesContent = (
-    <div className="space-y-4">
-      {expenseMonths.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          Sin gastos registrados en este período
-        </p>
-      )}
-
-      {expenseMonths.map((em) => {
-        const categories = Array.from(em.categories.values()).sort((a, b) => b.total - a.total);
-
-        return (
-          <Card key={`exp-${em.year}-${em.month}`}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">{em.label}</CardTitle>
-                <span className="text-sm font-bold text-red-500">
-                  {formatCurrency(em.total)}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {categories.map((cat) => (
-                <div key={cat.name} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">{cat.icon}</span>
-                      <span className="text-sm font-medium">{cat.name}</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {formatCurrency(cat.total)}
-                    </span>
-                  </div>
-
-                  {cat.items.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between pl-6 text-xs text-muted-foreground"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>{item.description}</span>
-                        {item.cardName ? (
-                          <span
-                            className="px-1 py-0 rounded border text-[10px]"
-                            style={{ borderColor: item.cardColor ?? undefined }}
-                          >
-                            {item.cardName}
-                          </span>
-                        ) : (
-                          <span className="px-1 py-0 rounded border text-[10px] border-emerald-400">
-                            Efectivo
-                          </span>
-                        )}
-                      </div>
-                      <span>{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+    <ExpensesByMonth
+      months={serializedMonths}
+      categories={uniqueCategories}
+      currentMonthKey={currentMonthKey}
+    />
   );
 
   return (
