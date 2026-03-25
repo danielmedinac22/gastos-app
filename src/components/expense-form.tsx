@@ -65,8 +65,8 @@ export function ExpenseForm({
                 defaultChecked={i === 0}
                 required
               />
-              <div className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-95">
-                <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-xl peer-checked:bg-primary peer-checked:shadow-lg peer-checked:shadow-primary/20 transition-all duration-200">
+              <div className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-95 peer-checked:[&>div:first-child]:bg-primary peer-checked:[&>div:first-child]:shadow-lg peer-checked:[&>div:first-child]:shadow-primary/20">
+                <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-xl transition-all duration-200">
                   {cat.icon}
                 </div>
                 <span className="text-[9px] font-medium text-on-surface-variant truncate w-full text-center uppercase tracking-wider">
