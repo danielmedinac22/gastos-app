@@ -3,36 +3,42 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Receipt, CreditCard, Repeat, TrendingUp, Plus } from "lucide-react";
+import { MaterialIcon } from "@/components/ui/material-icon";
 
 const navItems = [
-  { href: "/", label: "Inicio", icon: LayoutDashboard },
-  { href: "/expenses", label: "Gastos", icon: Receipt },
-  { href: "/expenses/new", label: "Agregar", icon: Plus, isAction: true },
-  { href: "/cards", label: "Tarjetas", icon: CreditCard },
-  { href: "/cash-flow", label: "Flujo", icon: TrendingUp },
+  { href: "/", label: "Inicio", icon: "home" },
+  { href: "/expenses", label: "Gastos", icon: "receipt_long" },
+  { href: "/expenses/new", label: "Agregar", icon: "add_circle", isAction: true },
+  { href: "/cards", label: "Tarjetas", icon: "credit_card" },
+  { href: "/cash-flow", label: "Flujo", icon: "account_balance_wallet" },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
-      <div className="max-w-lg mx-auto flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-nav rounded-t-3xl editorial-shadow">
+      <div className="max-w-lg mx-auto flex items-center justify-around h-20 pb-2">
         {navItems.map((item) => {
           const isActive = item.href === "/"
             ? pathname === "/"
             : pathname.startsWith(item.href);
-          const Icon = item.icon;
 
           if (item.isAction) {
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center justify-center -mt-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg"
+                className="flex flex-col items-center justify-center -mt-4 active:scale-90 transition-all duration-200"
               >
-                <Icon className="h-6 w-6" />
+                <MaterialIcon
+                  name={item.icon}
+                  fill
+                  className="text-primary text-4xl"
+                />
+                <span className="text-[9px] font-medium uppercase tracking-widest text-primary mt-0.5">
+                  {item.label}
+                </span>
               </Link>
             );
           }
@@ -42,12 +48,21 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 text-xs transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
+                "flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90",
+                isActive ? "text-primary" : "text-on-surface-variant"
               )}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <MaterialIcon
+                name={item.icon}
+                fill={isActive}
+                className="text-2xl"
+              />
+              <span className={cn(
+                "text-[9px] uppercase tracking-widest",
+                isActive ? "font-bold" : "font-medium"
+              )}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

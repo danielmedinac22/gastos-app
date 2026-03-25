@@ -13,8 +13,15 @@ export default async function NewExpensePage() {
   ]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Nuevo gasto</h1>
+    <div className="space-y-5">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
+          Registrar
+        </p>
+        <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
+          Nuevo gasto
+        </h1>
+      </div>
       <ExpenseForm categories={categories} cards={cards} />
     </div>
   );

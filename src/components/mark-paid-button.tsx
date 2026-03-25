@@ -2,17 +2,17 @@
 
 import { markCyclePaid } from "@/actions/cards";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { MaterialIcon } from "@/components/ui/material-icon";
 
 export function MarkPaidButton({ cycleId }: { cycleId: string }) {
   return (
     <Button
       size="sm"
-      variant="outline"
+      variant="gradient"
       onClick={() => markCyclePaid(cycleId)}
       className="text-xs"
     >
-      <Check className="h-3 w-3 mr-1" />
+      <MaterialIcon name="check" className="text-sm mr-0.5" />
       Marcar pagado
     </Button>
   );

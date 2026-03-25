@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 
 type ExpenseItem = {
@@ -47,7 +46,6 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-  // Filter months
   const filteredMonths = months
     .filter((m) => selectedMonth === "all" || m.key === selectedMonth)
     .map((m) => {
@@ -71,13 +69,13 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
   const grandTotal = filteredMonths.reduce((sum, m) => sum + m.total, 0);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Filters */}
       <div className="flex gap-2">
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="flex-1 text-sm rounded-md border border-input bg-background px-3 py-1.5"
+          className="flex-1 text-sm rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
         >
           <option value="all">Todos los meses</option>
           {months.map((m) => (
@@ -90,9 +88,9 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="flex-1 text-sm rounded-md border border-input bg-background px-3 py-1.5"
+          className="flex-1 text-sm rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
         >
-          <option value="all">Todas las categorías</option>
+          <option value="all">Todas</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.icon} {c.name}
@@ -102,37 +100,35 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
       </div>
 
       {/* Total */}
-      <div className="flex items-center justify-between text-sm px-1">
-        <span className="text-muted-foreground">Total filtrado</span>
-        <span className="font-bold text-red-500">{formatCurrency(grandTotal)}</span>
+      <div className="flex items-center justify-between px-1">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">Total filtrado</span>
+        <span className="font-headline font-bold text-error">{formatCurrency(grandTotal)}</span>
       </div>
 
       {/* Results */}
       {filteredMonths.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">
+        <p className="text-sm text-on-surface-variant text-center py-8">
           Sin gastos para los filtros seleccionados
         </p>
       )}
 
       {filteredMonths.map((em) => (
-        <Card key={em.key}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">{em.label}</CardTitle>
-              <span className="text-sm font-bold text-red-500">
-                {formatCurrency(em.total)}
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div key={em.key} className="bg-surface-container-lowest rounded-2xl p-5 editorial-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-headline text-base font-bold text-on-surface">{em.label}</span>
+            <span className="font-headline font-bold text-error">
+              {formatCurrency(em.total)}
+            </span>
+          </div>
+          <div className="space-y-4">
             {em.categories.map((cat) => (
-              <div key={cat.name} className="space-y-1">
+              <div key={cat.name} className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{cat.icon}</span>
-                    <span className="text-sm font-medium">{cat.name}</span>
+                    <span className="text-base">{cat.icon}</span>
+                    <span className="text-sm font-semibold text-on-surface">{cat.name}</span>
                   </div>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-semibold">
                     {formatCurrency(cat.total)}
                   </span>
                 </div>
@@ -140,21 +136,22 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
                 {cat.items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between pl-6 text-xs text-muted-foreground"
+                    className="flex items-center justify-between pl-7 text-xs text-on-surface-variant"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{item.description}</span>
                       {item.cardName ? (
-                        <span
-                          className="px-1 py-0 rounded border text-[10px]"
-                          style={{ borderColor: item.cardColor ?? undefined }}
-                        >
+                        <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full inline-block mr-0.5"
+                            style={{ backgroundColor: item.cardColor ?? undefined }}
+                          />
                           {item.cardName}
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="px-1 py-0 rounded border text-[10px] border-emerald-400">
+                        <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
                           Efectivo
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <span>{formatCurrency(item.amount)}</span>
@@ -162,8 +159,8 @@ export function ExpensesByMonth({ months, categories, currentMonthKey }: Props) 
                 ))}
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

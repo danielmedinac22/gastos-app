@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { MaterialIcon } from "@/components/ui/material-icon";
 import { buttonVariants } from "@/components/ui/button-variants";
 import Link from "next/link";
-import { Plus } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -20,24 +19,30 @@ export default async function CardsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tarjetas</h1>
-        <Link href="/cards/new" className={buttonVariants({ size: "sm" })}>
-          <Plus className="h-4 w-4 mr-1" />
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
+            Crédito
+          </p>
+          <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
+            Tarjetas
+          </h1>
+        </div>
+        <Link href="/cards/new" className={buttonVariants({ variant: "gradient", size: "sm" })}>
+          <MaterialIcon name="add" className="text-base mr-0.5" />
           Nueva
         </Link>
       </div>
 
       {cards.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <p className="text-sm">No hay tarjetas registradas</p>
-            <Link href="/cards/new" className="text-sm text-primary underline mt-1 inline-block">
-              Agregar tarjeta
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="bg-surface-container-lowest rounded-2xl p-8 text-center editorial-shadow">
+          <MaterialIcon name="credit_card" className="text-4xl text-on-surface-variant/30 mx-auto" />
+          <p className="text-sm text-on-surface-variant mt-2">No hay tarjetas registradas</p>
+          <Link href="/cards/new" className="text-sm text-primary font-semibold underline mt-2 inline-block">
+            Agregar tarjeta
+          </Link>
+        </div>
       ) : (
         <div className="space-y-3">
           {cards.map((card) => {
@@ -49,22 +54,35 @@ export default async function CardsPage() {
 
             return (
               <Link key={card.id} href={`/cards/${card.id}`}>
-                <Card className="overflow-hidden">
-                  <div className="h-2" style={{ backgroundColor: card.color }} />
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">{card.name}</span>
-                      <span className="text-sm font-bold">
+                <div className="bg-surface-container-lowest rounded-2xl overflow-hidden editorial-shadow active:scale-[0.98] transition-all duration-200">
+                  <div className="h-1.5" style={{ backgroundColor: card.color }} />
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-full bg-primary-fixed/50 flex items-center justify-center">
+                          <MaterialIcon name="credit_card" className="text-lg text-primary" />
+                        </div>
+                        <span className="font-semibold text-on-surface">{card.name}</span>
+                      </div>
+                      <span className="font-headline text-2xl font-extrabold tracking-tight">
                         {formatCurrency(cycleTotal)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Corte: día {card.cutOffDay}</span>
-                      <span>Pago: día {card.paymentDay}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-4">
+                        <div>
+                          <span className="text-[9px] font-semibold uppercase tracking-widest text-on-surface-variant block">Corte</span>
+                          <span className="text-sm font-medium text-on-surface">Día {card.cutOffDay}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-semibold uppercase tracking-widest text-on-surface-variant block">Pago</span>
+                          <span className="text-sm font-medium text-on-surface">Día {card.paymentDay}</span>
+                        </div>
+                      </div>
                     </div>
                     {usage !== null && (
-                      <div className="mt-2">
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="mt-3">
+                        <div className="h-2 bg-surface-container rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all"
                             style={{
@@ -73,13 +91,13 @@ export default async function CardsPage() {
                             }}
                           />
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                        <p className="text-[10px] text-on-surface-variant mt-1 text-right font-medium">
                           {usage.toFixed(0)}% del cupo
                         </p>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </Link>
             );
           })}

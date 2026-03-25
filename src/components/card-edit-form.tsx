@@ -5,8 +5,7 @@ import { updateCard } from "@/actions/cards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil } from "lucide-react";
+import { MaterialIcon } from "@/components/ui/material-icon";
 
 const COLORS = [
   "#3B82F6", "#EF4444", "#10B981", "#F59E0B",
@@ -35,94 +34,97 @@ export function CardEditForm({ card }: Props) {
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-1">
-        <Pencil className="h-3 w-3" />
-        Editar
-      </Button>
+      <button
+        onClick={() => setOpen(true)}
+        className="text-on-surface-variant hover:text-primary transition-all duration-200 p-2 hover:bg-primary-fixed/30 rounded-xl"
+      >
+        <MaterialIcon name="edit" className="text-lg" />
+      </button>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Editar tarjeta</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={handleSubmit} className="space-y-3">
-          <div>
-            <Label htmlFor="edit-name" className="text-xs">Nombre</Label>
-            <Input id="edit-name" name="name" defaultValue={card.name} required className="h-9 text-sm" />
-          </div>
+    <div className="bg-surface-container-low rounded-2xl p-5 mt-2">
+      <div className="flex items-center gap-2 mb-4">
+        <MaterialIcon name="edit" className="text-lg text-primary" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-on-surface-variant">
+          Editar tarjeta
+        </span>
+      </div>
+      <form ref={formRef} action={handleSubmit} className="space-y-3">
+        <div>
+          <Label htmlFor="edit-name">Nombre</Label>
+          <Input id="edit-name" name="name" defaultValue={card.name} required className="mt-1" />
+        </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="edit-cutOff" className="text-xs">Día de corte</Label>
-              <Input
-                id="edit-cutOff"
-                name="cutOffDay"
-                type="number"
-                min="1"
-                max="31"
-                defaultValue={card.cutOffDay}
-                required
-                className="h-9 text-sm"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-payment" className="text-xs">Día de pago</Label>
-              <Input
-                id="edit-payment"
-                name="paymentDay"
-                type="number"
-                min="1"
-                max="31"
-                defaultValue={card.paymentDay}
-                required
-                className="h-9 text-sm"
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="edit-limit" className="text-xs">Cupo (opcional)</Label>
+            <Label htmlFor="edit-cutOff">Día de corte</Label>
             <Input
-              id="edit-limit"
-              name="creditLimit"
+              id="edit-cutOff"
+              name="cutOffDay"
               type="number"
-              step="1"
-              min="0"
-              defaultValue={card.creditLimit ?? ""}
-              className="h-9 text-sm"
+              min="1"
+              max="31"
+              defaultValue={card.cutOffDay}
+              required
+              className="mt-1"
             />
           </div>
-
           <div>
-            <Label className="text-xs">Color</Label>
-            <div className="flex gap-2 mt-1">
-              {COLORS.map((color) => (
-                <label key={color} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="color"
-                    value={color}
-                    className="peer sr-only"
-                    defaultChecked={color === card.color}
-                  />
-                  <div
-                    className="w-6 h-6 rounded-full border-2 border-transparent peer-checked:border-foreground peer-checked:scale-110 transition-transform"
-                    style={{ backgroundColor: color }}
-                  />
-                </label>
-              ))}
-            </div>
+            <Label htmlFor="edit-payment">Día de pago</Label>
+            <Input
+              id="edit-payment"
+              name="paymentDay"
+              type="number"
+              min="1"
+              max="31"
+              defaultValue={card.paymentDay}
+              required
+              className="mt-1"
+            />
           </div>
+        </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" className="flex-1">Guardar</Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+        <div>
+          <Label htmlFor="edit-limit">Cupo (opcional)</Label>
+          <Input
+            id="edit-limit"
+            name="creditLimit"
+            type="number"
+            step="1"
+            min="0"
+            defaultValue={card.creditLimit ?? ""}
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label>Color</Label>
+          <div className="flex gap-3 mt-2">
+            {COLORS.map((color) => (
+              <label key={color} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="color"
+                  value={color}
+                  className="peer sr-only"
+                  defaultChecked={color === card.color}
+                />
+                <div
+                  className="w-8 h-8 rounded-full peer-checked:ring-2 peer-checked:ring-primary peer-checked:ring-offset-2 peer-checked:scale-110 transition-all duration-200"
+                  style={{ backgroundColor: color }}
+                />
+              </label>
+            ))}
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        <div className="flex gap-2">
+          <Button type="submit" variant="gradient" size="sm" className="flex-1">Guardar</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+        </div>
+      </form>
+    </div>
   );
 }

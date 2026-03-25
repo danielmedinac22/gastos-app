@@ -1,13 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { MaterialIcon } from "@/components/ui/material-icon";
 import { buildPaymentPeriods, type PaymentPeriod } from "@/lib/cash-flow";
 import { CashFlowTabs } from "@/components/cash-flow-tabs";
 import { ExpensesByMonth } from "@/components/expenses-by-month";
 import Link from "next/link";
-import { CalendarDays, Repeat, CreditCard, Wallet, TrendingUp, ChevronRight, Banknote } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +67,6 @@ export default async function CashFlowPage() {
     }),
   ]);
 
-  // Compute real totalAmount from expenses (fixes stale/zero totalAmount)
   const cardsWithTotals = cards.map((card) => ({
     ...card,
     billingCycles: card.billingCycles.map((cycle) => {
@@ -108,7 +105,7 @@ export default async function CashFlowPage() {
   }
   const cashMonths = Array.from(cashByMonth.values()).sort((a, b) => a.year - b.year || a.month - b.month);
 
-  // Group ALL expenses by month → category for "Gastos por mes" tab
+  // Group ALL expenses by month for "Gastos por mes" tab
   const expensesByMonth = new Map<string, {
     label: string;
     month: number;
@@ -159,156 +156,146 @@ export default async function CashFlowPage() {
         const past = isPast(period);
 
         return (
-          <Card key={i} className={past ? "opacity-60" : ""}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
-                  {period.label}
-                </CardTitle>
-                {past && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    Pasado
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Incomes */}
-              {period.incomes.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <TrendingUp className="h-3 w-3" />
-                    Ingresos
-                  </div>
-                  {period.incomes.map((inc) => (
-                    <div
-                      key={inc.id}
-                      className="flex items-center justify-between pl-4"
-                    >
-                      <span className="text-sm">{inc.name}</span>
-                      <span className="text-sm font-medium text-green-600">
-                        +{formatCurrency(inc.amount)}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between pl-4 text-xs text-green-600 font-medium">
-                    <span>Subtotal ingresos</span>
-                    <span>+{formatCurrency(period.totalIncome)}</span>
-                  </div>
-                </div>
-              )}
+          <div
+            key={i}
+            className={`relative bg-surface-container-lowest rounded-2xl p-5 editorial-shadow ${past ? "opacity-50" : ""}`}
+          >
+            {/* Active indicator */}
+            {!past && i === periods.findIndex((p) => !isPast(p)) && (
+              <div className="absolute -left-1.5 top-4 bottom-4 w-1 bg-primary rounded-full" />
+            )}
 
-              {/* Fixed expenses */}
-              {period.fixedExpenses.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Repeat className="h-3 w-3" />
-                    Gastos fijos
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <MaterialIcon name="calendar_today" className="text-lg text-primary" />
+                <span className="font-headline text-base font-bold">{period.label}</span>
+              </div>
+              {past && (
+                <Badge variant="secondary" className="text-[10px]">
+                  Pasado
+                </Badge>
+              )}
+            </div>
+
+            {/* Incomes */}
+            {period.incomes.length > 0 && (
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">
+                  <MaterialIcon name="trending_up" className="text-sm text-tertiary" />
+                  Ingresos
+                </div>
+                {period.incomes.map((inc) => (
+                  <div key={inc.id} className="flex items-center justify-between pl-5">
+                    <span className="text-sm text-on-surface">{inc.name}</span>
+                    <span className="text-sm font-medium text-tertiary">
+                      +{formatCurrency(inc.amount)}
+                    </span>
                   </div>
-                  {period.fixedExpenses.map((fe) => (
-                    <div
-                      key={fe.id}
-                      className="flex items-center justify-between pl-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{fe.categoryIcon}</span>
-                        <span className="text-sm">{fe.name}</span>
-                        {fe.creditCardName && (
+                ))}
+                <div className="flex items-center justify-between pl-5 text-xs text-tertiary font-semibold">
+                  <span>Subtotal ingresos</span>
+                  <span>+{formatCurrency(period.totalIncome)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Fixed expenses */}
+            {period.fixedExpenses.length > 0 && (
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">
+                  <MaterialIcon name="repeat" className="text-sm text-warning" />
+                  Gastos fijos
+                </div>
+                {period.fixedExpenses.map((fe) => (
+                  <div key={fe.id} className="flex items-center justify-between pl-5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{fe.categoryIcon}</span>
+                      <span className="text-sm text-on-surface">{fe.name}</span>
+                      {fe.creditCardName && (
+                        <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
                           <span
-                            className="text-[10px] px-1.5 py-0 rounded border"
-                            style={{ borderColor: fe.creditCardColor ?? undefined }}
-                          >
-                            {fe.creditCardName}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(fe.amount)}
-                      </span>
+                            className="w-1.5 h-1.5 rounded-full inline-block mr-0.5"
+                            style={{ backgroundColor: fe.creditCardColor ?? undefined }}
+                          />
+                          {fe.creditCardName}
+                        </Badge>
+                      )}
                     </div>
-                  ))}
-                  <div className="flex items-center justify-between pl-4 text-xs text-orange-500 font-medium">
-                    <span>Subtotal fijos</span>
-                    <span>{formatCurrency(period.totalFixed)}</span>
+                    <span className="text-sm font-medium">{formatCurrency(fe.amount)}</span>
                   </div>
-                </div>
-              )}
-
-              {/* Card payments */}
-              {period.cardPayments.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <CreditCard className="h-3 w-3" />
-                    Pagos tarjetas
-                  </div>
-                  {period.cardPayments.map((cp) => (
-                    <div
-                      key={cp.cardId}
-                      className="flex items-center justify-between pl-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: cp.cardColor }}
-                        />
-                        <span className="text-sm">{cp.cardName}</span>
-                        {cp.isEstimate && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                            Estimado
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(cp.amount)}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between pl-4 text-xs text-purple-500 font-medium">
-                    <span>Subtotal tarjetas</span>
-                    <span>{formatCurrency(period.totalCards)}</span>
-                  </div>
-                </div>
-              )}
-
-              {period.incomes.length === 0 &&
-                period.fixedExpenses.length === 0 &&
-                period.cardPayments.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-2">
-                    Sin movimientos programados
-                  </p>
-                )}
-
-              <Separator />
-
-              {/* Totals */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Ingresos</span>
-                  <span className="text-green-600 font-medium">
-                    +{formatCurrency(period.totalIncome)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Gastos</span>
-                  <span className="text-red-500 font-medium">
-                    -{formatCurrency(period.totalExpenses)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-sm font-bold">
-                    <Wallet className="h-3.5 w-3.5" />
-                    Disponible
-                  </div>
-                  <span
-                    className={`font-bold ${period.available < 0 ? "text-destructive" : "text-green-600"}`}
-                  >
-                    {formatCurrency(period.available)}
-                  </span>
+                ))}
+                <div className="flex items-center justify-between pl-5 text-xs text-warning font-semibold">
+                  <span>Subtotal fijos</span>
+                  <span>{formatCurrency(period.totalFixed)}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            {/* Card payments */}
+            {period.cardPayments.length > 0 && (
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">
+                  <MaterialIcon name="credit_card" className="text-sm text-primary" />
+                  Pagos tarjetas
+                </div>
+                {period.cardPayments.map((cp) => (
+                  <div key={cp.cardId} className="flex items-center justify-between pl-5">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: cp.cardColor }}
+                      />
+                      <span className="text-sm text-on-surface">{cp.cardName}</span>
+                      {cp.isEstimate && (
+                        <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
+                          Estimado
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">{formatCurrency(cp.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pl-5 text-xs text-primary font-semibold">
+                  <span>Subtotal tarjetas</span>
+                  <span>{formatCurrency(period.totalCards)}</span>
+                </div>
+              </div>
+            )}
+
+            {period.incomes.length === 0 &&
+              period.fixedExpenses.length === 0 &&
+              period.cardPayments.length === 0 && (
+                <p className="text-sm text-on-surface-variant text-center py-2">
+                  Sin movimientos programados
+                </p>
+              )}
+
+            {/* Summary */}
+            <div className="mt-3 pt-3 border-t border-surface-container-high space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-on-surface-variant">Ingresos</span>
+                <span className="text-tertiary font-medium">
+                  +{formatCurrency(period.totalIncome)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-on-surface-variant">Gastos</span>
+                <span className="text-error font-medium">
+                  -{formatCurrency(period.totalExpenses)}
+                </span>
+              </div>
+              <div className={`flex items-center justify-between p-3 -mx-1 rounded-xl ${period.available >= 0 ? "bg-tertiary-fixed/20" : "bg-error-container/20"}`}>
+                <div className="flex items-center gap-1.5 font-headline font-bold text-sm">
+                  <MaterialIcon name="account_balance_wallet" className="text-base" />
+                  Disponible
+                </div>
+                <span className={`font-headline font-bold ${period.available < 0 ? "text-error" : "text-tertiary"}`}>
+                  {formatCurrency(period.available)}
+                </span>
+              </div>
+            </div>
+          </div>
         );
       })}
 
@@ -318,39 +305,30 @@ export default async function CashFlowPage() {
         const total = categories.reduce((sum, c) => sum + c.total, 0);
 
         return (
-          <Card key={`cash-${cm.year}-${cm.month}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Banknote className="h-4 w-4" />
-                Efectivo — {cm.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <div key={`cash-${cm.year}-${cm.month}`} className="bg-surface-container-lowest rounded-2xl p-5 editorial-shadow">
+            <div className="flex items-center gap-2 mb-3">
+              <MaterialIcon name="payments" className="text-lg text-on-surface-variant" />
+              <span className="font-headline text-base font-bold">Efectivo — {cm.label}</span>
+            </div>
+            <div className="space-y-2">
               {categories.map((cat) => (
-                <div
-                  key={cat.name}
-                  className="flex items-center justify-between pl-4"
-                >
+                <div key={cat.name} className="flex items-center justify-between pl-5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{cat.icon}</span>
-                    <span className="text-sm">{cat.name}</span>
+                    <span className="text-sm text-on-surface">{cat.name}</span>
                   </div>
-                  <span className="text-sm font-medium">
-                    {formatCurrency(cat.total)}
-                  </span>
+                  <span className="text-sm font-medium">{formatCurrency(cat.total)}</span>
                 </div>
               ))}
 
-              <Separator />
-
-              <div className="flex items-center justify-between">
+              <div className="pt-2 border-t border-surface-container-high flex items-center justify-between">
                 <span className="text-sm font-bold">Total efectivo</span>
-                <span className="text-sm font-bold text-red-500">
+                <span className="font-headline font-bold text-error">
                   {formatCurrency(total)}
                 </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         );
       })}
     </div>
@@ -382,7 +360,6 @@ export default async function CashFlowPage() {
     };
   });
 
-  // Extract unique categories
   const categoryMap = new Map<string, { id: string; icon: string; name: string }>();
   for (const exp of allExpenses) {
     if (!categoryMap.has(exp.categoryId)) {
@@ -401,12 +378,19 @@ export default async function CashFlowPage() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Flujo de caja</h1>
-        <Link href="/incomes" className="flex items-center gap-1 text-xs text-primary">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-on-surface-variant">
+            Proyección
+          </p>
+          <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">
+            Flujo de caja
+          </h1>
+        </div>
+        <Link href="/incomes" className="flex items-center gap-1 text-sm font-bold text-primary">
           Gestionar ingresos
-          <ChevronRight className="h-3 w-3" />
+          <MaterialIcon name="chevron_right" className="text-base" />
         </Link>
       </div>
 
