@@ -29,7 +29,7 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex flex-col items-center justify-center -mt-4 active:scale-90 transition-all duration-200"
+                className="flex-1 flex flex-col items-center justify-center -mt-4 active:scale-90 transition-all duration-200"
               >
                 <MaterialIcon
                   name={item.icon}
@@ -48,7 +48,7 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90",
+                "flex-1 flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90",
                 isActive ? "text-primary" : "text-on-surface-variant"
               )}
             >
